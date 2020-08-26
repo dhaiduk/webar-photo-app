@@ -1,6 +1,14 @@
 import * as THREE from 'three';
 import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import img1 from './photos/Photo_Color.1000.png';
+import img2 from './photos/Photo_Color.1001.png';
+import img3 from './photos/Photo_Color.1002.png';
+import img4 from './photos/Photobooth0.png';
+import img5 from './photos/Photobooth1.png';
+import img6 from './photos/Photobooth2.png';
+import img7 from './photos/Shem_Photobooth3_WO_shadow.png';
+import img8 from './photos/Solomon40.png';
 
 let container; //, labelContainer;
 let camera, scene, renderer, light;
@@ -9,60 +17,17 @@ let controller;
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 
-/*let measurements = [];
-let labels = [];*/
-
 let reticle;
-//let currentLine = null;
 
 let width, height;
 
 let geometry;
 
-/*function toScreenPosition(point, camera) {
-  var vector = new THREE.Vector3();
+let imgArray = [img1, img2, img3, img4, img5, img6, img7, img8];
 
-  vector.copy(point);
-  vector.project(camera);
-
-  vector.x = (vector.x + 1) * width / 2;
-  vector.y = (-vector.y + 1) * height / 2;
-  vector.z = 0;
-
-  return vector
-
-};
-
-function getCenterPoint(points) {
-  let line = new THREE.Line3(...points)
-  return line.getCenter();
-}
-
-function matrixToVector(matrix) {
-  let vector = new THREE.Vector3();
-  vector.setFromMatrixPosition(matrix);
-  return vector;
-}
-
-function initLine(point) {
-  let lineMaterial = new THREE.LineBasicMaterial({
-    color: 0xffffff,
-    linewidth: 5,
-    linecap: 'round'
-  });
-
-  let lineGeometry = new THREE.BufferGeometry().setFromPoints([point, point]);
-  return new THREE.Line(lineGeometry, lineMaterial);
-}
-
-function updateLine(matrix) {
-  let positions = currentLine.geometry.attributes.position.array;
-  positions[3] = matrix.elements[12]
-  positions[4] = matrix.elements[13]
-  positions[5] = matrix.elements[14]
-  currentLine.geometry.attributes.position.needsUpdate = true;
-  currentLine.geometry.computeBoundingSphere();
-}*/
+let count = 0;
+const WIDTH_IMG = 1.920;
+const HEIGHT_IMG = 1.080;
 
 function initReticle() {
   let ring = new THREE.RingBufferGeometry(0.045, 0.05, 32).rotateX(- Math.PI / 2);
@@ -82,14 +47,6 @@ function initRenderer() {
   renderer.xr.enabled = true;
 }
 
-/*function initLabelContainer() {
-  labelContainer = document.createElement('div');
-  labelContainer.style.position = 'absolute';
-  labelContainer.style.top = '0px';
-  labelContainer.style.pointerEvents = 'none';
-  labelContainer.setAttribute('id', 'container');
-}*/
-
 function initCamera() {
   camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 20);
 }
@@ -103,10 +60,9 @@ function initScene() {
   scene = new THREE.Scene();
 }
 
-/*function getDistance(points) {
-  if (points.length == 2)
-    return points[0].distanceTo(points[1]);
-}*/
+function initGeometry() {
+  geometry = new THREE.PlaneBufferGeometry(1, 1, 1);
+}
 
 function initXR() {
   container = document.createElement('div');
@@ -125,18 +81,9 @@ function initXR() {
   initRenderer()
   container.appendChild(renderer.domElement);
 
-  //initLabelContainer()
-  //container.appendChild(labelContainer);
-
-  /*document.body.appendChild(ARButton.createButton(renderer, {
-    optionalFeatures: ["dom-overlay"],
-    domOverlay: {root: document.querySelector('#container')}, 
-    requiredFeatures: ['hit-test']
-  }));*/
-
   document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
-  geometry = new THREE.CylinderBufferGeometry(0.1, 0.1, 0.2, 32).translate(0, 0.1, 0);
+  initGeometry();
 
   controller = renderer.xr.getController(0);
   controller.addEventListener('select', onSelect);
@@ -149,37 +96,14 @@ function initXR() {
   animate()
 }
 
-/*function onSelect() {
-  if (reticle.visible) {
-    measurements.push(matrixToVector(reticle.matrix));
-    if (measurements.length == 2) {
-      let distance = Math.round(getDistance(measurements) * 100);
-
-      let text = document.createElement('div');
-      text.className = 'label';
-      text.style.color = 'rgb(255,255,255)';
-      text.textContent = distance + ' cm';
-      document.querySelector('#container').appendChild(text);
-
-      labels.push({div: text, point: getCenterPoint(measurements)});
-
-      measurements = [];
-      currentLine = null;
-    } else {
-      currentLine = initLine(measurements[0]);
-      scene.add(currentLine);
-    }
-  }
-}*/
-
 function onSelect() {
 
   if (reticle.visible) {
 
-    var material = new THREE.MeshPhongMaterial({ color: 0xffffff * Math.random() });
-    var mesh = new THREE.Mesh(geometry, material);
+    if (count <= 7) count++; else count = 0;
+    var mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(imgArray[count]), transparent: true, opacity: 1, color: 0xffffff }));
     mesh.position.setFromMatrixPosition(reticle.matrix);
-    mesh.scale.y = Math.random() * 2 + 1;
+    mesh.scale.set(WIDTH_IMG * 2, HEIGHT_IMG * 2, 1);
     scene.add(mesh);
 
   }
@@ -197,49 +121,6 @@ function onWindowResize() {
 function animate() {
   renderer.setAnimationLoop(render);
 }
-
-/*function render(timestamp, frame) {
-  if (frame) {
-    let referenceSpace = renderer.xr.getReferenceSpace();
-    let session = renderer.xr.getSession();
-    if (hitTestSourceRequested === false) {
-      session.requestReferenceSpace('viewer').then(function (referenceSpace) {
-        session.requestHitTestSource({ space: referenceSpace }).then(function (source) {
-          hitTestSource = source;
-        });
-      });
-      session.addEventListener('end', function () {
-        hitTestSourceRequested = false;
-        hitTestSource = null;
-      });
-      hitTestSourceRequested = true;
-    }
-
-    if (hitTestSource) {
-      let hitTestResults = frame.getHitTestResults(hitTestSource);
-      if (hitTestResults.length) {
-        let hit = hitTestResults[0];
-        reticle.visible = true;
-        reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
-      } else {
-        reticle.visible = false;
-      }
-
-      if (currentLine) {
-        updateLine(reticle.matrix);
-      }
-    }
-
-    labels.map((label) => {
-      let pos = toScreenPosition(label.point, renderer.xr.getCamera(camera));
-      let x = pos.x;
-      let y = pos.y;
-      label.div.style.transform = "translate(-50%, -50%) translate(" + x + "px," + y + "px)";
-    })
-
-  }
-  renderer.render(scene, camera);
-}*/
 
 function render(timestamp, frame) {
 
