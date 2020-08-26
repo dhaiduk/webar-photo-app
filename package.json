@@ -7,8 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack",
     "serve": "webpack-dev-server",
-    "watch": "webpack --watch"
+    "watch": "webpack --watch",
+    "heroku-postbuild": "echo Skip build on Heroku"
   },
+  "heroku-run-build-script": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/woll-an/WebXR-Measure.git"
