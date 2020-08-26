@@ -2,30 +2,31 @@ import * as THREE from 'three';
 import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-let container, labelContainer;
+let container; //, labelContainer;
 let camera, scene, renderer, light;
 let controller;
 
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 
-let measurements = [];
-let labels = [];
+/*let measurements = [];
+let labels = [];*/
 
 let reticle;
-let currentLine = null;
+//let currentLine = null;
 
 let width, height;
 
-function toScreenPosition(point, camera)
-{
+let geometry;
+
+/*function toScreenPosition(point, camera) {
   var vector = new THREE.Vector3();
-  
+
   vector.copy(point);
   vector.project(camera);
-  
-  vector.x = (vector.x + 1) * width /2;
-  vector.y = (-vector.y + 1) * height/2;
+
+  vector.x = (vector.x + 1) * width / 2;
+  vector.y = (-vector.y + 1) * height / 2;
   vector.z = 0;
 
   return vector
@@ -61,7 +62,7 @@ function updateLine(matrix) {
   positions[5] = matrix.elements[14]
   currentLine.geometry.attributes.position.needsUpdate = true;
   currentLine.geometry.computeBoundingSphere();
-}
+}*/
 
 function initReticle() {
   let ring = new THREE.RingBufferGeometry(0.045, 0.05, 32).rotateX(- Math.PI / 2);
@@ -81,13 +82,13 @@ function initRenderer() {
   renderer.xr.enabled = true;
 }
 
-function initLabelContainer() {
+/*function initLabelContainer() {
   labelContainer = document.createElement('div');
   labelContainer.style.position = 'absolute';
   labelContainer.style.top = '0px';
   labelContainer.style.pointerEvents = 'none';
   labelContainer.setAttribute('id', 'container');
-}
+}*/
 
 function initCamera() {
   camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 20);
@@ -102,10 +103,10 @@ function initScene() {
   scene = new THREE.Scene();
 }
 
-function getDistance(points) {
+/*function getDistance(points) {
   if (points.length == 2)
     return points[0].distanceTo(points[1]);
-}
+}*/
 
 function initXR() {
   container = document.createElement('div');
@@ -124,14 +125,18 @@ function initXR() {
   initRenderer()
   container.appendChild(renderer.domElement);
 
-  initLabelContainer()
-  container.appendChild(labelContainer);
+  //initLabelContainer()
+  //container.appendChild(labelContainer);
 
-  document.body.appendChild(ARButton.createButton(renderer, {
+  /*document.body.appendChild(ARButton.createButton(renderer, {
     optionalFeatures: ["dom-overlay"],
     domOverlay: {root: document.querySelector('#container')}, 
     requiredFeatures: ['hit-test']
-  }));
+  }));*/
+
+  document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+
+  geometry = new THREE.CylinderBufferGeometry(0.1, 0.1, 0.2, 32).translate(0, 0.1, 0);
 
   controller = renderer.xr.getController(0);
   controller.addEventListener('select', onSelect);
@@ -144,7 +149,7 @@ function initXR() {
   animate()
 }
 
-function onSelect() {
+/*function onSelect() {
   if (reticle.visible) {
     measurements.push(matrixToVector(reticle.matrix));
     if (measurements.length == 2) {
@@ -165,12 +170,26 @@ function onSelect() {
       scene.add(currentLine);
     }
   }
+}*/
+
+function onSelect() {
+
+  if (reticle.visible) {
+
+    var material = new THREE.MeshPhongMaterial({ color: 0xffffff * Math.random() });
+    var mesh = new THREE.Mesh(geometry, material);
+    mesh.position.setFromMatrixPosition(reticle.matrix);
+    mesh.scale.y = Math.random() * 2 + 1;
+    scene.add(mesh);
+
+  }
+
 }
 
 function onWindowResize() {
   width = window.innerWidth;
   height = window.innerHeight;
-  camera.aspect = width/height;
+  camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
 }
@@ -179,7 +198,7 @@ function animate() {
   renderer.setAnimationLoop(render);
 }
 
-function render(timestamp, frame) {
+/*function render(timestamp, frame) {
   if (frame) {
     let referenceSpace = renderer.xr.getReferenceSpace();
     let session = renderer.xr.getSession();
@@ -220,6 +239,61 @@ function render(timestamp, frame) {
 
   }
   renderer.render(scene, camera);
+}*/
+
+function render(timestamp, frame) {
+
+  if (frame) {
+
+    var referenceSpace = renderer.xr.getReferenceSpace();
+    var session = renderer.xr.getSession();
+
+    if (hitTestSourceRequested === false) {
+
+      session.requestReferenceSpace('viewer').then(function (referenceSpace) {
+
+        session.requestHitTestSource({ space: referenceSpace }).then(function (source) {
+
+          hitTestSource = source;
+
+        });
+
+      });
+
+      session.addEventListener('end', function () {
+
+        hitTestSourceRequested = false;
+        hitTestSource = null;
+
+      });
+
+      hitTestSourceRequested = true;
+
+    }
+
+    if (hitTestSource) {
+
+      var hitTestResults = frame.getHitTestResults(hitTestSource);
+
+      if (hitTestResults.length) {
+
+        var hit = hitTestResults[0];
+
+        reticle.visible = true;
+        reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+
+      } else {
+
+        reticle.visible = false;
+
+      }
+
+    }
+
+  }
+
+  renderer.render(scene, camera);
+
 }
 
 export { initXR }
