@@ -103,7 +103,7 @@ function onSelect() {
     if (count <= 7) count++; else count = 0;
     var mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ map: THREE.ImageUtils.loadTexture(imgArray[count]), transparent: true, opacity: 1, color: 0xffffff }));
     mesh.position.setFromMatrixPosition(reticle.matrix);
-    mesh.scale.set(WIDTH_IMG * 2, HEIGHT_IMG * 2, 1);
+    mesh.scale.set(WIDTH_IMG * 5, HEIGHT_IMG * 5, 1);
     scene.add(mesh);
 
   }
