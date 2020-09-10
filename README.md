@@ -1,4 +1,4 @@
-# WebXR-Measure
+# webar-photo-app
 
 Augmented Reality Measure with WebXR
 
